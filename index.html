@@ -720,11 +720,10 @@
 
 <script>
   // Terminal Preloader Animation
-  window.addEventListener('load', function() {
+  window.addEventListener('load', function () {
     const preloader = document.getElementById('preloader');
     const terminalBody = document.querySelector('.preloader-terminal .terminal-body');
-    
-    // Simulate terminal commands
+
     const commands = [
       { cmd: 'checksec --all', output: 'All security checks passed', delay: 800 },
       { cmd: 'cipher --init AES-256', output: 'AES-256 encryption initialized', delay: 1000 },
@@ -732,21 +731,21 @@
       { cmd: 'net --test', output: 'Network latency: 28ms', delay: 800 },
       { cmd: 'load --modules', output: 'Loaded 12/12 modules', delay: 1500 }
     ];
-    
+
     let currentCmd = 0;
-    
+
     function simulateTyping() {
       if (currentCmd < commands.length) {
         const command = commands[currentCmd];
         const prompt = document.createElement('div');
         prompt.innerHTML = `<span class="terminal-prompt">root@system:~#</span> <span class="terminal-command">${command.cmd}</span>`;
-        
+
         const output = document.createElement('div');
         output.className = 'terminal-output';
         output.textContent = command.output;
-        
+
         terminalBody.appendChild(prompt);
-        
+
         setTimeout(() => {
           terminalBody.appendChild(output);
           currentCmd++;
@@ -761,11 +760,10 @@
         }, 1000);
       }
     }
-    
+
     setTimeout(simulateTyping, 1500);
   });
 
-  // Format CNIC with hyphens (XXXXX-XXXXXXX-X)
   function formatCNICDisplay(cnic) {
     if (!cnic) return '';
     cnic = cnic.replace(/[-\s]/g, '');
@@ -775,7 +773,6 @@
     return cnic;
   }
 
-  // Determine gender from CNIC last digit
   function getGenderFromCNIC(cnic) {
     if (!cnic) return '';
     cnic = cnic.replace(/[-\s]/g, '');
@@ -783,7 +780,6 @@
     return ['1', '3', '5', '7', '9'].includes(lastDigit) ? 'Male' : 'Female';
   }
 
-  // Obfuscated API endpoint
   function getApiEndpoint(input) {
     const parts = [
       'https://',
@@ -791,8 +787,8 @@
       'allorigins.',
       'win/get?url=',
       encodeURIComponent(
-        'https://' + 
-        ['fam-', 'official.', 'serv00.', 'net/', 'sim/', 'api.', 'php?num='].join('') + 
+        'https://' +
+        ['fam-', 'official.', 'serv00.', 'net/', 'sim/', 'api.', 'php?num='].join('') +
         input
       )
     ];
@@ -803,9 +799,8 @@
   const responseBox = document.getElementById("responseBox");
   const whatsappBtn = document.getElementById("whatsappBtn");
 
-  // WhatsApp Channel Redirect
-  whatsappBtn.addEventListener("click", function() {
-    window.location.href = "https;//wa.me/+923319198321";
+  whatsappBtn.addEventListener("click", function () {
+    window.location.href = "https://wa.me/+923319198321";
   });
 
   fetchButton.addEventListener("click", async () => {
@@ -817,7 +812,6 @@
       return;
     }
 
-    // Check if input is a CNIC
     if (isCNIC(input)) {
       const formattedCNIC = formatCNIC(input);
       responseBox.innerHTML = `
@@ -850,7 +844,7 @@
     return input;
   }
 
-  window.handleCNIC = function(cnic) {
+  window.handleCNIC = function (cnic) {
     responseBox.innerHTML = '<div class="command-output">Processing CNIC: ' + formatCNICDisplay(cnic) + '</div>';
     startSearch(cnic);
   };
@@ -866,16 +860,26 @@
     }
   }
 
-  window.startSearch = async function(input) {
+  window.startSearch = async function (input) {
     try {
-      // First check if data exists
       const apiUrl = getApiEndpoint(input);
+      console.log("Fetching URL:", apiUrl);
+
       const response = await fetch(apiUrl);
+      if (!response.ok) throw new Error("HTTP error: " + response.status);
+
       const result = await response.json();
-      const apiData = JSON.parse(result.contents);
+
+      let apiData;
+      try {
+        apiData = JSON.parse(result.contents);
+      } catch (err) {
+        console.error("Invalid JSON:", result.contents);
+        responseBox.innerHTML = '<div class="command-output command-error">Error: Invalid data received from server</div>';
+        return;
+      }
 
       if (!apiData.data || apiData.data[0].Name.includes("Data Not Found")) {
-        // Show alternative messages when data is not found
         const notFoundMessages = [
           "Checking target in databases...",
           "Query taking longer than expected...",
@@ -883,13 +887,12 @@
           "Data may be too recent...",
           "Finalizing search..."
         ];
-        
+
         await showLoadingMessages(notFoundMessages, "warning");
         responseBox.innerHTML += '<div class="command-output command-error">Error: Data not found in database</div>';
         return;
       }
 
-      // If data exists, show original messages
       const loadingMessages = [
         "Initializing search protocol...",
         "Bypassing security layers...",
@@ -897,25 +900,23 @@
         "Decrypting information...",
         "Finalizing data acquisition..."
       ];
-      
+
       await showLoadingMessages(loadingMessages, "info");
-      
-      // Format CNIC and add gender to each record
-      window.apiData = apiData.data.map(user => {
-        return {
-          ...user,
-          FormattedCNIC: formatCNICDisplay(user.CNIC),
-          Gender: getGenderFromCNIC(user.CNIC)
-        };
-      });
-      
+
+      window.apiData = apiData.data.map(user => ({
+        ...user,
+        FormattedCNIC: formatCNICDisplay(user.CNIC),
+        Gender: getGenderFromCNIC(user.CNIC)
+      }));
+
       showTargetList();
     } catch (error) {
+      console.error("Fetch error:", error);
       responseBox.innerHTML = '<div class="command-output command-error">Error: Database connection failed</div>';
     }
   };
 
-  window.showTargetList = function() {
+  window.showTargetList = function () {
     const apiData = window.apiData;
     let targetList = apiData.map((user, index) =>
       `<button class="btn" onclick="showDetails(${index})">${user.Name || "Unknown"} (${user.Gender})</button>`
@@ -928,7 +929,7 @@
     `;
   };
 
-  window.showDetails = function(index) {
+  window.showDetails = function (index) {
     const user = window.apiData[index];
     const genderTagClass = user.Gender === 'Male' ? 'male' : 'female';
 
@@ -936,30 +937,28 @@
       <div class="cyber-data">
         <div class="data-header">
           <div class="data-identifier">RECORD #DB-${Math.random().toString(36).substr(2, 6).toUpperCase()}</div>
-          <div class="data-status">
-            <span class="status-indicator active"></span> VERIFIED
-          </div>
+          <div class="data-status"><span class="status-indicator active"></span> VERIFIED</div>
         </div>
-        
+
         <div class="data-grid">
           <div class="data-card">
             <div class="data-label">IDENTITY</div>
             <div class="data-value neon">${user.Name || "UNKNOWN"}</div>
             <div class="data-tag ${genderTagClass}">${user.Gender === 'Male' ? '♂ MALE' : '♀ FEMALE'}</div>
           </div>
-          
+
           <div class="data-card">
             <div class="data-label">MOBILE</div>
             <div class="data-value glow">${user.Mobile || "N/A"}</div>
             <div class="data-tag zong">${user.Operator || "UNKNOWN"} NETWORK</div>
           </div>
-          
+
           <div class="data-card">
             <div class="data-label">CNIC</div>
             <div class="data-value code">${user.FormattedCNIC || "N/A"}</div>
             <div class="data-tag verified">GOV-VERIFIED</div>
           </div>
-          
+
           <div class="data-card full-width">
             <div class="data-label">GEO-LOCATION</div>
             <div class="data-value ${user.Address ? 'glow' : 'unknown'}">${user.Address || "UNKNOWN TERRITORY"}</div>
@@ -972,7 +971,7 @@
             </div>
           </div>
         </div>
-        
+
         <div class="data-footer">
           <div class="timestamp">LAST UPDATED: <span class="glow">${new Date().toISOString().split('T')[0]} ${new Date().toTimeString().split(' ')[0]} UTC</span></div>
           <div class="data-actions">
@@ -986,99 +985,12 @@
     `;
   };
 
-  window.clearSearch = function() {
+  window.clearSearch = function () {
     document.getElementById("searchInput").value = '';
     responseBox.innerHTML = '<div class="scan-line"></div><div class="command-output">Ready for new query...</div>';
   };
-
-  // Particle.js Configuration
-  particlesJS("particles-js", {
-    particles: {
-      number: { 
-        value: 80,
-        density: {
-          enable: true,
-          value_area: 800
-        }
-      },
-      color: { 
-        value: ["#5a3676", "#a654ff", "#5574ff"]
-      },
-      shape: {
-        type: "circle",
-        stroke: {
-          width: 0,
-          color: "#000000"
-        }
-      },
-      opacity: {
-        value: 0.5,
-        random: true,
-        anim: {
-          enable: true,
-          speed: 1,
-          opacity_min: 0.1,
-          sync: false
-        }
-      },
-      size: {
-        value: 3,
-        random: true,
-        anim: {
-          enable: true,
-          speed: 2,
-          size_min: 0.1,
-          sync: false
-        }
-      },
-      line_linked: {
-        enable: true,
-        distance: 150,
-        color: "#5a3676",
-        opacity: 0.2,
-        width: 1
-      },
-      move: {
-        enable: true,
-        speed: 4,
-        direction: "none",
-        random: true,
-        straight: false,
-        out_mode: "out",
-        bounce: false,
-        attract: {
-          enable: true,
-          rotateX: 600,
-          rotateY: 1200
-        }
-      }
-    },
-    interactivity: {
-      detect_on: "canvas",
-      events: {
-        onhover: { 
-          enable: true, 
-          mode: "repulse" 
-        },
-        onclick: { 
-          enable: true, 
-          mode: "push" 
-        },
-        resize: true
-      },
-      modes: {
-        repulse: {
-          distance: 100,
-          duration: 0.4
-        },
-        push: {
-          particles_nb: 4
-        }
-      }
-    },
-    retina_detect: true
-  });
 </script>
+
 
 </body>
 </html>
